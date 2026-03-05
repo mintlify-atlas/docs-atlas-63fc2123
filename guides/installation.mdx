@@ -1,0 +1,264 @@
+---
+title: Installation
+description: Step-by-step guide to install and set up the WhatsApp Audio Transcriber bot
+---
+
+## System Requirements
+
+Before installing the WhatsApp Audio Transcriber, ensure your system meets the following requirements:
+
+<CardGroup cols={2}>
+  <Card title="Node.js" icon="node-js">
+    Node.js version 18 or higher is required
+  </Card>
+  <Card title="FFmpeg" icon="file-audio">
+    FFmpeg for audio format conversion
+  </Card>
+  <Card title="Storage" icon="hard-drive">
+    At least 1GB free space for Whisper models
+  </Card>
+  <Card title="Platform" icon="desktop">
+    Linux, macOS, or Windows
+  </Card>
+</CardGroup>
+
+## Installing Node.js
+
+If you don't have Node.js installed, download it from [nodejs.org](https://nodejs.org/). Verify your installation:
+
+```bash
+node --version
+npm --version
+```
+
+## Installing FFmpeg
+
+FFmpeg is required for converting WhatsApp audio files to the format needed by Whisper.
+
+<Tabs>
+  <Tab title="Ubuntu/Debian">
+    ```bash
+    sudo apt update
+    sudo apt install ffmpeg
+    ```
+  </Tab>
+  <Tab title="macOS">
+    ```bash
+    # Using Homebrew
+    brew install ffmpeg
+    ```
+  </Tab>
+  <Tab title="Windows">
+    1. Download FFmpeg from [ffmpeg.org](https://ffmpeg.org/download.html)
+    2. Extract the archive to a folder (e.g., `C:\ffmpeg`)
+    3. Add the `bin` folder to your system PATH
+    4. Restart your terminal and verify:
+    ```bash
+    ffmpeg -version
+    ```
+  </Tab>
+  <Tab title="Fedora/RHEL">
+    ```bash
+    sudo dnf install ffmpeg
+    ```
+  </Tab>
+</Tabs>
+
+Verify FFmpeg installation:
+
+```bash
+ffmpeg -version
+```
+
+## Installing the Bot
+
+<Steps>
+  <Step title="Clone the Repository">
+    Clone the repository and navigate to the project directory:
+
+    <CodeGroup>
+    ```bash HTTPS
+    git clone https://github.com/lucaboy/whatsapp-audio-transcriber.git
+    cd whatsapp-audio-transcriber
+    ```
+
+    ```bash SSH
+    git clone git@github.com:lucaboy/whatsapp-audio-transcriber.git
+    cd whatsapp-audio-transcriber
+    ```
+    </CodeGroup>
+  </Step>
+
+  <Step title="Install Dependencies">
+    Install the required npm packages using your preferred package manager:
+
+    <CodeGroup>
+    ```bash npm
+    npm install
+    ```
+
+    ```bash yarn
+    yarn install
+    ```
+
+    ```bash pnpm
+    pnpm install
+    ```
+    </CodeGroup>
+
+    <Info>
+      This will install all dependencies listed in `package.json`, including:
+      - `whatsapp-web.js` for WhatsApp integration
+      - `smart-whisper` for speech-to-text transcription
+      - `fluent-ffmpeg` for audio conversion
+      - `express` for the web server
+    </Info>
+  </Step>
+
+  <Step title="Download Whisper Model">
+    Download a Whisper model converted to GGML format from [HuggingFace](https://huggingface.co/ggerganov/whisper.cpp):
+
+    <Accordion title="Available Models">
+      | Model | Size | Speed | Accuracy | Recommended For |
+      |-------|------|-------|----------|----------------|
+      | tiny | 75 MB | Fastest | Low | Testing only |
+      | base | 142 MB | Very Fast | Moderate | Quick transcriptions |
+      | small | 466 MB | Fast | Good | General use |
+      | medium | 1.5 GB | Moderate | Very Good | **Recommended** |
+      | large-v3 | 3.1 GB | Slow | Excellent | Maximum accuracy |
+    </Accordion>
+
+    Create a `models` directory and download your chosen model:
+
+    ```bash
+    mkdir -p models
+    cd models
+    # Example: Download the medium model
+    wget https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-medium.bin
+    ```
+
+    <Tip>
+      The **medium** model offers the best balance between speed and accuracy for most use cases.
+    </Tip>
+  </Step>
+
+  <Step title="Configure Environment">
+    Copy the example environment file and configure it:
+
+    ```bash
+    cp .env.example .env
+    ```
+
+    Edit the `.env` file and set the path to your downloaded model:
+
+    ```bash
+    WHISPER_LOCAL_MODEL_PATH=models/ggml-medium.bin
+    ```
+
+    See the [Configuration](/guides/configuration) guide for detailed environment variable explanations.
+  </Step>
+
+  <Step title="Build the Application">
+    Compile the TypeScript code to JavaScript:
+
+    <CodeGroup>
+    ```bash npm
+    npm run build
+    ```
+
+    ```bash yarn
+    yarn build
+    ```
+
+    ```bash pnpm
+    pnpm build
+    ```
+    </CodeGroup>
+
+    This creates a `dist` directory with the compiled JavaScript files.
+  </Step>
+</Steps>
+
+## Verifying Installation
+
+After completing the installation steps, verify everything is set up correctly:
+
+```bash
+# Check if dist directory was created
+ls dist/
+
+# Check if model file exists
+ls models/
+
+# Check if .env file is configured
+cat .env
+```
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="FFmpeg not found">
+    If you get an error about FFmpeg not being found:
+
+    1. Verify FFmpeg is installed: `ffmpeg -version`
+    2. On Windows, ensure FFmpeg is in your system PATH
+    3. Restart your terminal after installing FFmpeg
+    4. Try reinstalling FFmpeg using the platform-specific instructions above
+  </Accordion>
+
+  <Accordion title="Build fails with TypeScript errors">
+    If the build fails:
+
+    1. Ensure you're using Node.js 18 or higher
+    2. Delete `node_modules` and reinstall:
+    ```bash
+    rm -rf node_modules package-lock.json
+    npm install
+    npm run build
+    ```
+    3. Check that all dependencies installed correctly
+  </Accordion>
+
+  <Accordion title="Whisper model not found">
+    If the bot can't find the Whisper model:
+
+    1. Verify the model file exists at the path specified in `.env`
+    2. Check that the path in `WHISPER_LOCAL_MODEL_PATH` is correct (relative to project root)
+    3. Ensure the model file has the correct `.bin` extension
+    4. Try using an absolute path instead of a relative path
+  </Accordion>
+
+  <Accordion title="Permission errors on Linux/macOS">
+    If you encounter permission errors:
+
+    ```bash
+    # Fix permissions for the project directory
+    sudo chown -R $USER:$USER .
+    
+    # Make sure npm has correct permissions
+    mkdir ~/.npm-global
+    npm config set prefix '~/.npm-global'
+    export PATH=~/.npm-global/bin:$PATH
+    ```
+  </Accordion>
+
+  <Accordion title="Out of memory errors">
+    If you get out of memory errors:
+
+    1. Use a smaller Whisper model (e.g., `small` instead of `large`)
+    2. Ensure your system has at least 4GB of available RAM
+    3. Close other applications to free up memory
+    4. For large models, consider using a system with more RAM
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Configuration" icon="gear" href="/guides/configuration">
+    Configure your bot with custom settings and Whisper models
+  </Card>
+  <Card title="Usage" icon="play" href="/guides/usage">
+    Learn how to start the bot and transcribe voice messages
+  </Card>
+</CardGroup>

@@ -1,97 +1,103 @@
 ---
-title: "Introduction"
-description: "Welcome to the new home for your documentation"
+title: WhatsApp Audio Transcriber
+description: Automatically transcribe WhatsApp voice messages using Whisper.cpp
 ---
 
-## Setting up
+<div style={{
+  background: 'linear-gradient(135deg, #418f45 0%, #9ac0a4 100%)',
+  borderRadius: '4px',
+  padding: '48px 32px',
+  marginBottom: '32px',
+  color: 'white'
+}}>
+  <h1 style={{ fontSize: '36px', fontWeight: 700, marginBottom: '16px', color: 'white' }}>
+    WhatsApp Audio Transcriber
+  </h1>
+  <p style={{ fontSize: '18px', marginBottom: '24px', color: '#ffffff' }}>
+    A Node.js WhatsApp bot that automatically transcribes voice messages using Whisper.cpp
+  </p>
+</div>
 
-Get your documentation site up and running in minutes.
+## Overview
 
-<Card
-  title="Start here"
-  icon="rocket"
-  href="/quickstart"
-  horizontal
->
-  Follow our three step quickstart guide.
-</Card>
+WhatsApp Audio Transcriber is a powerful bot that listens to your WhatsApp conversations and automatically transcribes voice messages when you react to them with a specific emoji. Built with Node.js and powered by OpenAI's Whisper speech recognition model, it provides accurate, multi-language transcription directly in your WhatsApp chats.
 
-## Make it yours
-
-Design a docs site that looks great and empowers your users.
-
-<Columns cols={2}>
-  <Card
-    title="Edit locally"
-    icon="pen-to-square"
-    href="/development"
-  >
-    Edit your docs locally and preview them in real time.
+<CardGroup cols={2}>
+  <Card title="Quick Start" icon="rocket" href="/quickstart">
+    Get up and running in minutes with our step-by-step guide
   </Card>
-  <Card
-    title="Customize your site"
-    icon="palette"
-    href="/essentials/settings"
-  >
-    Customize the design and colors of your site to match your brand.
+  <Card title="Installation" icon="download" href="/guides/installation">
+    Install dependencies and set up your environment
   </Card>
-    <Card
-    title="Set up navigation"
-    icon="map"
-    href="/essentials/navigation"
-  >
-    Organize your docs to help users find what they need and succeed with your product.
+  <Card title="Configuration" icon="gear" href="/guides/configuration">
+    Configure Whisper models, GPU support, and more
   </Card>
-  <Card
-    title="API documentation"
-    icon="terminal"
-    href="/api-reference/introduction"
-  >
-    Auto-generate API documentation from OpenAPI specifications.
+  <Card title="Environment Variables" icon="code" href="/reference/environment-variables">
+    Complete reference for all configuration options
   </Card>
-</Columns>
+</CardGroup>
 
-## Create beautiful pages
+## Key Features
 
-Everything you need to create world-class documentation.
+<CardGroup cols={2}>
+  <Card title="Automatic Transcription" icon="waveform">
+    React to any voice message with the configured emoji to trigger instant transcription
+  </Card>
+  <Card title="WhatsApp Web Integration" icon="message">
+    Seamless integration with WhatsApp Web using QR code authentication
+  </Card>
+  <Card title="Multi-language Support" icon="globe">
+    Transcribe voice messages in multiple languages with auto-detection
+  </Card>
+  <Card title="Flexible Model Selection" icon="brain">
+    Choose from Whisper models ranging from tiny to large based on your needs
+  </Card>
+  <Card title="GPU Acceleration" icon="microchip">
+    Optional GPU support for faster transcription processing
+  </Card>
+  <Card title="Simple Setup" icon="bolt">
+    Easy configuration with environment variables and automatic model download
+  </Card>
+</CardGroup>
 
-<Columns cols={2}>
-  <Card
-    title="Write with MDX"
-    icon="pen-fancy"
-    href="/essentials/markdown"
-  >
-    Use MDX to style your docs pages.
-  </Card>
-  <Card
-    title="Code samples"
-    icon="code"
-    href="/essentials/code"
-  >
-    Add sample code to demonstrate how to use your product.
-  </Card>
-  <Card
-    title="Images"
-    icon="image"
-    href="/essentials/images"
-  >
-    Display images and other media.
-  </Card>
-  <Card
-    title="Reusable snippets"
-    icon="recycle"
-    href="/essentials/reusable-snippets"
-  >
-    Write once and reuse across your docs.
-  </Card>
-</Columns>
+## How It Works
 
-## Need inspiration?
+<Steps>
+  <Step title="Start the Bot">
+    Run the application and scan the QR code with your WhatsApp mobile app to authenticate.
+  </Step>
+  <Step title="React to Voice Messages">
+    When you receive a voice message, react to it with your configured emoji (default: 🤖).
+  </Step>
+  <Step title="Get Transcription">
+    The bot automatically downloads the voice message, processes it through Whisper, and replies with the transcription.
+  </Step>
+</Steps>
 
-<Card
-  title="See complete examples"
-  icon="stars"
-  href="https://mintlify.com/customers"
->
-  Browse our showcase of exceptional documentation sites.
+## Technology Stack
+
+This project is built with:
+
+- **[whatsapp-web.js](https://github.com/pedroslopez/whatsapp-web.js)** - WhatsApp API client using Puppeteer
+- **[smart-whisper](https://github.com/JacobLinCool/smart-whisper)** - Node.js wrapper for whisper.cpp
+- **[Express](https://expressjs.com/)** - Web server for QR code display
+- **[FFmpeg](https://www.ffmpeg.org/)** - Audio processing and conversion
+
+## Quick Example
+
+Once configured, using the bot is as simple as:
+
+1. Receive a voice message in WhatsApp
+2. React to it with 🤖 (or your custom emoji)
+3. Wait a few seconds for processing
+4. Receive the transcription as a reply
+
+The bot handles all the audio conversion, processing, and transcription automatically.
+
+## Getting Started
+
+Ready to start transcribing? Check out our [Quick Start Guide](/quickstart) to get your bot up and running in minutes.
+
+<Card title="View on GitHub" icon="github" href="https://github.com/lucaboy/whatsapp-audio-transcriber">
+  Star the project and contribute on GitHub
 </Card>

@@ -1,0 +1,493 @@
+---
+title: 'Troubleshooting'
+description: 'Common issues and solutions for WhatsApp Audio Transcriber'
+icon: 'wrench'
+---
+
+This guide covers common issues you may encounter while running the WhatsApp Audio Transcriber bot and their solutions.
+
+## QR Code Issues
+
+<AccordionGroup>
+  <Accordion title="QR code not displaying in browser">
+    When you navigate to `http://localhost:8080`, you might see the message: "QR code not available yet. Refresh the page."
+
+    **Causes:**
+    - The WhatsApp client is still initializing
+    - Puppeteer hasn't launched yet
+    - The client failed to generate the QR code
+
+    **Solutions:**
+    
+    <Steps>
+      <Step title="Wait and refresh">
+        The bot needs a few seconds to initialize. Wait 5-10 seconds and refresh the page.
+      </Step>
+      
+      <Step title="Check console logs">
+        Look at your terminal for errors during initialization:
+        
+        ```bash
+        npm start
+        # Watch for errors in the output
+        ```
+      </Step>
+      
+      <Step title="Verify Puppeteer dependencies">
+        On Linux, ensure Chrome/Chromium dependencies are installed:
+        
+        ```bash
+        # Ubuntu/Debian
+        sudo apt-get install -y gconf-service libasound2 libatk1.0-0 \
+          libcairo2 libcups2 libfontconfig1 libgdk-pixbuf2.0-0 \
+          libgtk-3-0 libnspr4 libpango-1.0-0 libxss1 fonts-liberation \
+          libappindicator1 libnss3 lsb-release xdg-utils
+        ```
+      </Step>
+    </Steps>
+
+    <Note>
+      The application uses `--no-sandbox` flag for Puppeteer, which helps in containerized environments but may cause security concerns in production.
+    </Note>
+  </Accordion>
+
+  <Accordion title="'Already connected' message appears">
+    If you see "Connected. You can close this page." but want to re-authenticate:
+
+    **Solution:**
+    
+    Delete the authentication session data:
+    
+    ```bash
+    # Stop the bot
+    # Remove the session folder
+    rm -rf .wwebjs_auth
+    
+    # Restart the bot
+    npm start
+    ```
+    
+    <Warning>
+      Deleting `.wwebjs_auth` will require you to scan the QR code again.
+    </Warning>
+  </Accordion>
+</AccordionGroup>
+
+## Authentication Issues
+
+<AccordionGroup>
+  <Accordion title="QR code scanned but bot doesn't connect">
+    After scanning the QR code, the bot should connect within seconds.
+
+    **If connection fails:**
+    
+    <Steps>
+      <Step title="Check WhatsApp Web version">
+        The bot uses a specific WhatsApp Web version (`2.2410.1`). If WhatsApp has deprecated this version:
+        
+        ```typescript
+        // In src/index.ts, the bot uses:
+        webVersionCache: {
+          type: 'remote',
+          remotePath: 'https://raw.githubusercontent.com/wppconnect-team/wa-version/main/html/2.2410.1.html'
+        }
+        ```
+        
+        Check if a newer version is available at the [wa-version repository](https://github.com/wppconnect-team/wa-version).
+      </Step>
+      
+      <Step title="Clear session and retry">
+        Remove `.wwebjs_auth` and `.wwebjs_cache` folders, then restart.
+      </Step>
+      
+      <Step title="Check for WhatsApp limitations">
+        Ensure your WhatsApp account isn't banned or restricted from using WhatsApp Web.
+      </Step>
+    </Steps>
+  </Accordion>
+
+  <Accordion title="'Protocol error' or Puppeteer crashes">
+    **Error message:**
+    ```
+    Protocol error (Target.setAutoAttach): Target closed
+    ```
+
+    **Solutions:**
+    - Increase system resources (RAM/CPU)
+    - Ensure Chrome/Chromium dependencies are installed
+    - Try running with `--disable-dev-shm-usage` flag by modifying the Puppeteer config in `src/index.ts`
+  </Accordion>
+</AccordionGroup>
+
+## Bot Response Issues
+
+<AccordionGroup>
+  <Accordion title="Bot doesn't respond to reaction emoji">
+    The bot only transcribes when you react with the configured emoji (default: 🤖).
+
+    **Requirements checklist:**
+    
+    - ✅ The reaction must be from you (not from someone else)
+    - ✅ The emoji must match `TRANSCRIPTION_REACTION` in `.env`
+    - ✅ The reaction must be added within the last 2 minutes
+    - ✅ The message must be a voice message (PTT - Push To Talk)
+
+    **Code reference:**
+    ```typescript
+    // From src/index.ts:74-81
+    if (
+        !reaction.id.fromMe ||  // Must be from you
+        reaction.reaction !== transcriptionReaction ||  // Must match emoji
+        moment.unix(reaction.timestamp).isBefore(moment().subtract(2, 'minutes'))  // Within 2 min
+    ) {
+        return;
+    }
+    ```
+
+    <Tip>
+      If you want to use a different emoji, update `TRANSCRIPTION_REACTION` in your `.env` file:
+      
+      ```bash
+      TRANSCRIPTION_REACTION='⭐'
+      ```
+    </Tip>
+  </Accordion>
+
+  <Accordion title="Bot responds slowly or times out">
+    The bot retries up to 30 times (with 2-second delays) to fetch the message.
+
+    **If transcription is slow:**
+    
+    - **Large audio files**: Longer voice messages take more time to transcribe
+    - **CPU model**: Without GPU acceleration, transcription is slower
+    - **Whisper model size**: Larger models (large-v3) are more accurate but slower
+
+    **Optimize performance:**
+    
+    <Steps>
+      <Step title="Enable GPU acceleration">
+        If you have a compatible GPU:
+        
+        ```bash
+        # In .env
+        USE_GPU=true
+        ```
+      </Step>
+      
+      <Step title="Use a smaller model">
+        Switch to a faster model like `tiny`, `base`, or `small`:
+        
+        ```bash
+        # In .env
+        WHISPER_MODEL=base
+        ```
+        
+        Or download a smaller model and set:
+        ```bash
+        WHISPER_LOCAL_MODEL_PATH=models/ggml-base.bin
+        ```
+      </Step>
+    </Steps>
+  </Accordion>
+
+  <Accordion title="Empty transcription or no reply">
+    If the bot reacts but doesn't send a transcription:
+
+    **Possible causes:**
+    
+    1. **Whisper returned empty text**: The audio might be silent or unclear
+    2. **Audio processing failed**: Check console for FFmpeg errors
+    3. **Unsupported language**: Check your `TRANSCRIPTION_LANGUAGE` setting
+
+    **Debug steps:**
+    
+    ```bash
+    # Check if transcription completed
+    # Look for errors in console output when you react to a message
+    ```
+
+    <Info>
+      The bot only replies if transcription text is non-empty (see `src/index.ts:114`).
+    </Info>
+  </Accordion>
+</AccordionGroup>
+
+## FFmpeg Issues
+
+<AccordionGroup>
+  <Accordion title="FFmpeg not found error">
+    **Error message:**
+    ```
+    Error: Cannot find ffmpeg
+    ```
+
+    **Solution:**
+    
+    Install FFmpeg for your operating system:
+    
+    <CodeGroup>
+      ```bash Ubuntu/Debian
+      sudo apt-get update
+      sudo apt-get install ffmpeg
+      ```
+
+      ```bash macOS
+      brew install ffmpeg
+      ```
+
+      ```bash Windows
+      # Download from https://www.ffmpeg.org/download.html
+      # Add to PATH
+      ```
+    </CodeGroup>
+
+    **Verify installation:**
+    ```bash
+    ffmpeg -version
+    ```
+  </Accordion>
+
+  <Accordion title="Audio conversion fails">
+    The bot converts WhatsApp OGG audio to 16kHz WAV format required by Whisper.
+
+    **If you see conversion errors:**
+    
+    ```bash
+    # Check tmp/audio directory permissions
+    ls -la ./tmp/audio
+    
+    # Ensure the directory exists and is writable
+    mkdir -p ./tmp/audio
+    chmod 755 ./tmp/audio
+    ```
+
+    <Note>
+      Audio files are automatically deleted after processing (`src/index.ts:109-110`).
+    </Note>
+  </Accordion>
+</AccordionGroup>
+
+## Whisper Model Issues
+
+<AccordionGroup>
+  <Accordion title="Model download fails">
+    If `WHISPER_LOCAL_MODEL_PATH` is not set, the bot downloads the model automatically.
+
+    **Download process:**
+    ```typescript
+    // From src/index.ts:29-31
+    manager.download(whisperModel).then(() => {
+        whisper = new Whisper(manager.resolve(whisperModel), whisperOptions);
+    });
+    ```
+
+    **If download fails:**
+    
+    <Steps>
+      <Step title="Download manually">
+        Get the model from [Hugging Face](https://huggingface.co/ggerganov/whisper.cpp):
+        
+        ```bash
+        mkdir -p models
+        cd models
+        wget https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.bin
+        ```
+      </Step>
+      
+      <Step title="Update .env">
+        Point to the downloaded model:
+        
+        ```bash
+        WHISPER_LOCAL_MODEL_PATH=models/ggml-base.bin
+        ```
+      </Step>
+    </Steps>
+  </Accordion>
+
+  <Accordion title="Model file not found">
+    **Error scenario:**
+    ```
+    Error: ENOENT: no such file or directory
+    ```
+
+    **Solution:**
+    
+    Verify the model path in `.env` is correct:
+    
+    ```bash
+    # Check if file exists
+    ls -lh models/ggml-large-v3.bin
+    
+    # Update .env with correct absolute or relative path
+    WHISPER_LOCAL_MODEL_PATH=/full/path/to/models/ggml-large-v3.bin
+    ```
+
+    <Warning>
+      The path must point to a `.bin` file in ggml format, not the original PyTorch models.
+    </Warning>
+  </Accordion>
+
+  <Accordion title="Model loads but transcription fails">
+    **If whisper initialization succeeds but transcription fails:**
+    
+    1. **Check language setting**: Ensure `TRANSCRIPTION_LANGUAGE` is supported
+    2. **Verify audio format**: The bot converts to 16kHz mono WAV
+    3. **Check memory**: Large models require significant RAM
+
+    **Supported language codes:**
+    - `auto` - Auto-detect (default)
+    - `en` - English
+    - `es` - Spanish
+    - `fr` - French
+    - And [90+ other languages](https://github.com/openai/whisper#available-models-and-languages)
+  </Accordion>
+</AccordionGroup>
+
+## Performance Issues
+
+<AccordionGroup>
+  <Accordion title="High memory usage">
+    Whisper models, especially large ones, consume significant memory:
+    
+    - **tiny**: ~75 MB
+    - **base**: ~140 MB
+    - **small**: ~460 MB
+    - **medium**: ~1.5 GB
+    - **large-v3**: ~2.9 GB
+
+    **Solutions:**
+    
+    - Use a smaller model for lower memory usage
+    - Increase swap space on Linux
+    - Deploy on a machine with adequate RAM
+  </Accordion>
+
+  <Accordion title="CPU at 100% during transcription">
+    This is expected behavior when `USE_GPU=false`.
+
+    **Normal behavior:**
+    - CPU spikes to near 100% during transcription
+    - Returns to normal after transcription completes
+
+    **To reduce CPU usage:**
+    
+    1. Enable GPU acceleration if available
+    2. Use a smaller/faster model
+    3. Run on a more powerful CPU
+
+    <Tip>
+      The `medium` model offers a good balance between accuracy and performance for most use cases.
+    </Tip>
+  </Accordion>
+
+  <Accordion title="Slow startup time">
+    The bot may take time to start if:
+    
+    - Model needs to be downloaded
+    - Large model is being loaded into memory
+    - Puppeteer is downloading Chromium
+
+    **First-time setup:**
+    ```bash
+    # Download model beforehand
+    # Then startup will be faster
+    ```
+
+    **Subsequent starts:**
+    - Should be faster as model and browser are cached
+    - LocalAuth preserves WhatsApp session
+  </Accordion>
+</AccordionGroup>
+
+## Port and Network Issues
+
+<AccordionGroup>
+  <Accordion title="Port 8080 already in use">
+    **Error message:**
+    ```
+    Error: listen EADDRINUSE: address already in use :::8080
+    ```
+
+    **Solution:**
+    
+    Change the port in `.env`:
+    ```bash
+    PORT=3000
+    ```
+    
+    Then access at `http://localhost:3000`
+  </Accordion>
+
+  <Accordion title="Cannot access from another device">
+    By default, Express listens on localhost only.
+
+    **To access from other devices on your network:**
+    
+    Modify `src/index.ts` to bind to all interfaces:
+    ```typescript
+    app.listen(port, '0.0.0.0', () => {
+      console.log(`Server running on http://0.0.0.0:${port}`);
+    });
+    ```
+
+    <Warning>
+      Only do this on trusted networks, as it exposes the QR code endpoint.
+    </Warning>
+  </Accordion>
+</AccordionGroup>
+
+## Build and Runtime Errors
+
+<AccordionGroup>
+  <Accordion title="TypeScript compilation errors">
+    **If `npm run build` fails:**
+    
+    ```bash
+    # Clean and rebuild
+    rm -rf dist node_modules
+    npm install
+    npm run build
+    ```
+  </Accordion>
+
+  <Accordion title="Module not found errors">
+    **Error message:**
+    ```
+    Cannot find module 'smart-whisper'
+    ```
+
+    **Solution:**
+    ```bash
+    # Reinstall dependencies
+    npm install
+    
+    # If using a local model, ensure it exists
+    ls -l models/
+    ```
+  </Accordion>
+
+  <Accordion title=".env file not loaded">
+    Ensure `.env` is in the project root directory:
+    
+    ```bash
+    # Check .env location
+    ls -la .env
+    
+    # Verify it's properly formatted (no quotes around values unless needed)
+    cat .env
+    ```
+
+    <Info>
+      The bot uses the `dotenv` package to load environment variables (`src/index.ts:11`).
+    </Info>
+  </Accordion>
+</AccordionGroup>
+
+## Still Having Issues?
+
+If your problem isn't covered here:
+
+1. Check the [FAQ](/faq) for common questions
+2. Review the console output for specific error messages
+3. Open an issue on the [GitHub repository](https://github.com/lucaboy/whatsapp-audio-transcriber)
+4. Ensure you're using the latest version of the bot and its dependencies

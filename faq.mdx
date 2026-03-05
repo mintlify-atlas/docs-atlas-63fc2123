@@ -1,0 +1,628 @@
+---
+title: 'Frequently Asked Questions'
+description: 'Common questions about WhatsApp Audio Transcriber'
+icon: 'question'
+---
+
+Find answers to frequently asked questions about the WhatsApp Audio Transcriber bot.
+
+## General Questions
+
+<AccordionGroup>
+  <Accordion title="What does this bot do?">
+    The WhatsApp Audio Transcriber is a Node.js bot that automatically transcribes voice messages in WhatsApp. When you react to a voice message with a specific emoji (default: 🤖), the bot downloads the audio, processes it through OpenAI's Whisper model, and replies with the transcription.
+
+    **Key features:**
+    - Automatic voice message transcription
+    - Support for 90+ languages
+    - Runs locally on your machine
+    - No cloud services required
+    - Free and open source
+  </Accordion>
+
+  <Accordion title="How does the bot work?">
+    The bot uses several technologies:
+
+    1. **whatsapp-web.js**: Connects to WhatsApp Web via Puppeteer
+    2. **QR code authentication**: Scan once to link your WhatsApp account
+    3. **Reaction detection**: Monitors for your configured emoji reaction
+    4. **Audio processing**: Downloads voice message and converts OGG to WAV using FFmpeg
+    5. **Whisper transcription**: Processes audio through whisper.cpp for speech-to-text
+    6. **Auto-reply**: Sends transcription back as a reply to the original message
+
+    <Info>
+      The bot only processes voice messages that **you** react to within the last 2 minutes (see `src/index.ts:78`).
+    </Info>
+  </Accordion>
+
+  <Accordion title="Is this bot free to use?">
+    Yes, completely free! The bot is licensed under GPL-3.0 and runs entirely on your local machine. There are no API costs, subscriptions, or cloud services required.
+
+    **Costs to consider:**
+    - Your own hardware/server to run the bot
+    - Electricity for running the application
+    - Optional: GPU for faster transcription
+  </Accordion>
+
+  <Accordion title="Does the bot work with group chats?">
+    Yes! The bot works in both individual and group chats. As long as you react to a voice message with the configured emoji, it will transcribe it.
+
+    **Privacy note:**
+    - Only reactions from your account trigger transcription
+    - Other group members cannot trigger the bot
+    - Transcriptions are sent as replies visible to all group members
+  </Accordion>
+
+  <Accordion title="Can I use this bot for commercial purposes?">
+    The bot is licensed under GPL-3.0, which allows commercial use with conditions:
+    
+    - Source code must be disclosed
+    - Derivative works must use the same license
+    - You must include the original license and copyright notice
+
+    Review the [GPL-3.0 license](https://www.gnu.org/licenses/gpl-3.0.en.html) for full details.
+  </Accordion>
+</AccordionGroup>
+
+## Language and Model Questions
+
+<AccordionGroup>
+  <Accordion title="What languages are supported?">
+    Whisper supports 90+ languages including:
+
+    **Common languages:**
+    - English, Spanish, French, German, Italian
+    - Portuguese, Russian, Chinese, Japanese, Korean
+    - Arabic, Hindi, Turkish, Dutch, Polish
+    - And many more!
+
+    **Configuration:**
+    ```bash
+    # Auto-detect language (default)
+    TRANSCRIPTION_LANGUAGE=auto
+
+    # Specify a language code
+    TRANSCRIPTION_LANGUAGE=en  # English
+    TRANSCRIPTION_LANGUAGE=es  # Spanish
+    TRANSCRIPTION_LANGUAGE=fr  # French
+    ```
+
+    <Tip>
+      Using `auto` works well for most cases. Specify a language only if you know all voice messages will be in that language for potentially better accuracy.
+    </Tip>
+  </Accordion>
+
+  <Accordion title="Which Whisper model should I use?">
+    Whisper offers 5 model sizes. Choose based on your needs:
+
+    | Model | Size | RAM | Speed | Accuracy | Best For |
+    |-------|------|-----|-------|----------|----------|
+    | tiny | ~75 MB | Low | Fastest | Basic | Testing, low-resource devices |
+    | base | ~140 MB | Low | Very Fast | Good | Quick transcriptions |
+    | small | ~460 MB | Medium | Fast | Better | Balanced performance |
+    | medium | ~1.5 GB | High | Moderate | Great | **Recommended default** |
+    | large-v3 | ~2.9 GB | Very High | Slow | Best | Maximum accuracy |
+
+    **How to configure:**
+    ```bash
+    # Option 1: Use model name (auto-downloads)
+    WHISPER_MODEL=medium
+
+    # Option 2: Use local model file
+    WHISPER_LOCAL_MODEL_PATH=models/ggml-medium.bin
+    ```
+
+    <Note>
+      The default is `medium` which provides excellent accuracy while being reasonably fast on most modern CPUs.
+    </Note>
+  </Accordion>
+
+  <Accordion title="How do I download Whisper models?">
+    **Automatic download:**
+    The bot automatically downloads the specified model on first run:
+    ```bash
+    # In .env
+    WHISPER_MODEL=base
+    ```
+
+    **Manual download:**
+    Download from [Hugging Face](https://huggingface.co/ggerganov/whisper.cpp):
+    ```bash
+    mkdir -p models
+    cd models
+
+    # Download the model you want
+    wget https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.bin
+    wget https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-medium.bin
+    wget https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3.bin
+    ```
+
+    Then set in `.env`:
+    ```bash
+    WHISPER_LOCAL_MODEL_PATH=models/ggml-base.bin
+    ```
+  </Accordion>
+
+  <Accordion title="Can the bot translate to English?">
+    Whisper has built-in translation capabilities, but this bot is configured for **transcription only** (speech-to-text in the original language).
+
+    To add translation, you would need to modify the code in `src/index.ts:112` to use the `translate` parameter instead of `transcribe`.
+
+    **Current behavior:**
+    - Spanish audio → Spanish text
+    - French audio → French text
+
+    **Translation would do:**
+    - Spanish audio → English text
+    - French audio → English text
+  </Accordion>
+</AccordionGroup>
+
+## Performance and Resources
+
+<AccordionGroup>
+  <Accordion title="What are the system requirements?">
+    **Minimum requirements:**
+    - Node.js 16+ (recommended: Node.js 20)
+    - 2 GB RAM (for small/base models)
+    - 4 GB RAM (for medium model)
+    - 8 GB RAM (for large models)
+    - FFmpeg installed
+    - 2-4 GB disk space (for models and dependencies)
+
+    **Recommended:**
+    - 4+ CPU cores
+    - 8+ GB RAM
+    - SSD for faster I/O
+    - Linux or macOS (Windows works but less tested)
+
+    **For GPU acceleration:**
+    - CUDA-compatible NVIDIA GPU
+    - CUDA toolkit installed
+    - Set `USE_GPU=true` in `.env`
+  </Accordion>
+
+  <Accordion title="How long does transcription take?">
+    Transcription time depends on several factors:
+
+    **Audio length:**
+    - 10-second voice message: 1-3 seconds (base model, CPU)
+    - 1-minute voice message: 5-15 seconds (medium model, CPU)
+    - 5-minute voice message: 30-60 seconds (medium model, CPU)
+
+    **Model size:**
+    - tiny/base: ~0.5x realtime (30s audio → 15s transcription)
+    - medium: ~1-2x realtime (30s audio → 30-60s transcription)
+    - large: ~3-5x realtime (30s audio → 90-150s transcription)
+
+    **With GPU:**
+    - 5-10x faster than CPU
+    - Set `USE_GPU=true` if you have compatible hardware
+
+    <Tip>
+      For faster transcription, use the `base` or `small` model, or enable GPU acceleration.
+    </Tip>
+  </Accordion>
+
+  <Accordion title="Can I run this on a Raspberry Pi?">
+    Yes, but with limitations:
+
+    **Raspberry Pi 4 (4GB/8GB):**
+    - ✅ Can run tiny/base models
+    - ⚠️ Slow with small/medium models
+    - ❌ Not recommended for large models
+
+    **Tips for Raspberry Pi:**
+    ```bash
+    # Use the smallest model
+    WHISPER_MODEL=tiny
+
+    # Increase swap space
+    sudo dphys-swapfile swapoff
+    sudo nano /etc/dphys-swapfile
+    # Set CONF_SWAPSIZE=2048
+    sudo dphys-swapfile setup
+    sudo dphys-swapfile swapon
+    ```
+
+    Expect transcription to be slower than on a desktop/server.
+  </Accordion>
+
+  <Accordion title="Does GPU acceleration work?">
+    GPU acceleration is supported but depends on your setup:
+
+    **Requirements:**
+    - NVIDIA GPU with CUDA support
+    - CUDA toolkit installed
+    - Compatible smart-whisper build
+
+    **Enable GPU:**
+    ```bash
+    USE_GPU=true
+    ```
+
+    **Performance gain:**
+    - 5-10x faster than CPU
+    - Lower CPU usage
+    - Higher GPU memory usage
+
+    <Warning>
+      GPU support depends on the whisper.cpp bindings in smart-whisper. If it doesn't work, the bot will fall back to CPU automatically.
+    </Warning>
+  </Accordion>
+
+  <Accordion title="How much disk space do I need?">
+    **Total disk usage:**
+    - Dependencies (`node_modules`): ~200-300 MB
+    - Whisper model: 75 MB - 3 GB (depending on model size)
+    - Puppeteer Chromium: ~300 MB
+    - Temporary audio files: &lt;10 MB (auto-deleted after processing)
+
+    **Recommended free space:**
+    - 5 GB for comfortable operation
+    - Models are cached and reused
+    - Audio files in `./tmp/audio` are cleaned up automatically
+  </Accordion>
+</AccordionGroup>
+
+## Privacy and Security
+
+<AccordionGroup>
+  <Accordion title="Is my data private?">
+    Yes! The bot runs entirely on your local machine:
+
+    **Data flow:**
+    1. Voice messages are downloaded from WhatsApp Web
+    2. Processed locally using FFmpeg
+    3. Transcribed locally using Whisper
+    4. Temporary audio files deleted immediately after processing
+    5. Transcription sent back through WhatsApp Web
+
+    **No external services:**
+    - No cloud APIs
+    - No data sent to third parties
+    - No logging to external servers
+    - All processing happens on your machine
+
+    <Info>
+      Audio files are stored in `./tmp/audio` only during processing and are deleted immediately (see `src/index.ts:109-110`).
+    </Info>
+  </Accordion>
+
+  <Accordion title="Does the bot store voice messages?">
+    No. Voice messages are deleted immediately after transcription:
+
+    ```typescript
+    // From src/index.ts:109-110
+    fs.unlinkSync(`${filePathWithoutExtension}.ogg`);
+    fs.unlinkSync(`${filePathWithoutExtension}.wav`);
+    ```
+
+    **Temporary storage:**
+    - Downloaded as `.ogg` from WhatsApp
+    - Converted to `.wav` for Whisper
+    - Both files deleted after transcription completes
+    - No permanent storage of audio data
+  </Accordion>
+
+  <Accordion title="Can others use my bot?">
+    No. The bot is tied to your WhatsApp account and only responds to reactions from you:
+
+    ```typescript
+    // From src/index.ts:76
+    if (!reaction.id.fromMe) {
+        return;  // Ignore reactions from others
+    }
+    ```
+
+    **Security:**
+    - Only you can trigger transcriptions
+    - The QR code page (port 8080) should not be exposed publicly
+    - After authentication, the page just shows "Connected"
+
+    <Warning>
+      Don't expose port 8080 to the internet. It's only needed for initial QR code scanning.
+    </Warning>
+  </Accordion>
+
+  <Accordion title="What data does WhatsApp see?">
+    The bot uses WhatsApp Web through official channels:
+
+    **WhatsApp knows:**
+    - You're using WhatsApp Web (like opening whatsapp.com)
+    - Which messages you download
+    - Your transcription replies (sent as normal messages)
+
+    **WhatsApp doesn't know:**
+    - That you're using a bot
+    - That messages are being transcribed
+    - Anything about the local processing
+
+    The bot appears to WhatsApp as a normal Web session.
+  </Accordion>
+</AccordionGroup>
+
+## WhatsApp Limitations
+
+<AccordionGroup>
+  <Accordion title="Why only reactions from the last 2 minutes?">
+    This is a design choice to prevent accidental transcriptions of old messages:
+
+    ```typescript
+    // From src/index.ts:78
+    moment.unix(reaction.timestamp).isBefore(moment().subtract(2, 'minutes'))
+    ```
+
+    **Reasoning:**
+    - Prevents processing very old messages
+    - Reduces unnecessary API calls
+    - You can change this duration by modifying the code
+
+    **To change the time window:**
+    Edit `src/index.ts` and change `2, 'minutes'` to your preferred duration (e.g., `5, 'minutes'` or `1, 'hours'`).
+  </Accordion>
+
+  <Accordion title="Can the bot transcribe regular audio messages?">
+    Currently, the bot only transcribes PTT (Push-To-Talk) voice messages:
+
+    ```typescript
+    // From src/index.ts:98
+    if (whisper && message?.type === 'ptt') {
+    ```
+
+    **Supported:**
+    - ✅ Voice messages (PTT - the mic button)
+
+    **Not supported:**
+    - ❌ Audio files sent as attachments
+    - ❌ Video audio tracks
+    - ❌ Shared music files
+
+    To support regular audio files, you'd need to modify the condition to check for `'audio'` type as well.
+  </Accordion>
+
+  <Accordion title="What happens if WhatsApp Web session expires?">
+    The bot uses `LocalAuth` to persist sessions:
+
+    **Session persistence:**
+    - Authentication data stored in `.wwebjs_auth`
+    - Session survives bot restarts
+    - No need to re-scan QR code
+
+    **If session expires:**
+    - WhatsApp may expire sessions after long inactivity (weeks/months)
+    - You'll need to scan the QR code again
+    - Navigate to `http://localhost:8080` and rescan
+
+    <Tip>
+      Keep the bot running to maintain an active session, or restart it periodically.
+    </Tip>
+  </Accordion>
+
+  <Accordion title="Why does the bot retry 30 times to fetch messages?">
+    WhatsApp Web.js sometimes needs time to sync messages:
+
+    ```typescript
+    // From src/index.ts:87-95
+    while (numberOfTries < 30) {
+        try {
+            message = await client.getMessageById(reaction.msgId._serialized);
+            break;
+        } catch (error) {
+            numberOfTries++;
+            await new Promise(resolve => setTimeout(resolve, 2000));
+        }
+    }
+    ```
+
+    **Why retry:**
+    - Messages may not be immediately available
+    - Network delays in message sync
+    - WhatsApp Web API quirks
+
+    **30 tries × 2 seconds = 60 seconds maximum wait time**
+
+    If the message still can't be fetched after 30 tries, transcription is skipped.
+  </Accordion>
+</AccordionGroup>
+
+## Customization
+
+<AccordionGroup>
+  <Accordion title="Can I change the reaction emoji?">
+    Yes! Modify the `TRANSCRIPTION_REACTION` in your `.env` file:
+
+    ```bash
+    # Default
+    TRANSCRIPTION_REACTION='🤖'
+
+    # Examples of other emojis
+    TRANSCRIPTION_REACTION='⭐'
+    TRANSCRIPTION_REACTION='👂'
+    TRANSCRIPTION_REACTION='📝'
+    TRANSCRIPTION_REACTION='🎯'
+    ```
+
+    Restart the bot after changing the configuration.
+  </Accordion>
+
+  <Accordion title="Can I customize the reply format?">
+    Yes! Edit the reply message in `src/index.ts:115`:
+
+    ```typescript
+    // Current format
+    message!.reply(`[WA-TRANSCRIBER-BOT] ${transcription}`);
+
+    // Custom examples:
+    message!.reply(`📝 ${transcription}`);
+    message!.reply(`Transcription:\n${transcription}`);
+    message!.reply(transcription);  // Just the text, no prefix
+    ```
+
+    Rebuild and restart after changes:
+    ```bash
+    npm run build
+    npm start
+    ```
+  </Accordion>
+
+  <Accordion title="Can I add support for video audio?">
+    Yes, with code modifications. You would need to:
+
+    1. Check for video message type
+    2. Extract audio track from video
+    3. Process through Whisper
+
+    **Example modification in `src/index.ts:98`:**
+    ```typescript
+    if (whisper && (message?.type === 'ptt' || message?.type === 'video')) {
+        // Add video audio extraction logic
+    }
+    ```
+
+    This requires additional FFmpeg processing to extract audio from video files.
+  </Accordion>
+
+  <Accordion title="Can I run multiple bots on different accounts?">
+    Yes! Run separate instances with different configurations:
+
+    ```bash
+    # Instance 1
+    PORT=8080 npm start
+
+    # Instance 2 (different directory or config)
+    PORT=8081 npm start
+    ```
+
+    **Important:**
+    - Use different ports
+    - Use different auth folders (modify `LocalAuth` options)
+    - Each instance needs its own QR code scan
+  </Accordion>
+</AccordionGroup>
+
+## Deployment
+
+<AccordionGroup>
+  <Accordion title="Can I deploy this to a server?">
+    Yes! The bot works well on servers:
+
+    **Recommended platforms:**
+    - VPS (DigitalOcean, Linode, AWS EC2)
+    - Dedicated server
+    - Docker container
+    - Raspberry Pi (with smaller models)
+
+    **Server considerations:**
+    - Ensure adequate RAM for your chosen model
+    - Install FFmpeg and Chromium dependencies
+    - Use a process manager (PM2, systemd) for auto-restart
+    - Secure the QR code endpoint (firewall rules)
+
+    <Tip>
+      After initial setup, you can block external access to port 8080 as it's only needed for QR code scanning.
+    </Tip>
+  </Accordion>
+
+  <Accordion title="How do I run the bot as a background service?">
+    Use PM2 or systemd:
+
+    **Using PM2:**
+    ```bash
+    npm install -g pm2
+    pm2 start dist/index.js --name whatsapp-transcriber
+    pm2 save
+    pm2 startup  # Enable auto-start on boot
+    ```
+
+    **Using systemd (Linux):**
+    ```ini
+    # /etc/systemd/system/whatsapp-transcriber.service
+    [Unit]
+    Description=WhatsApp Audio Transcriber
+    After=network.target
+
+    [Service]
+    Type=simple
+    User=youruser
+    WorkingDirectory=/path/to/whatsapp-audio-transcriber
+    ExecStart=/usr/bin/node dist/index.js
+    Restart=always
+
+    [Install]
+    WantedBy=multi-user.target
+    ```
+
+    ```bash
+    sudo systemctl enable whatsapp-transcriber
+    sudo systemctl start whatsapp-transcriber
+    ```
+  </Accordion>
+
+  <Accordion title="Can I run this in Docker?">
+    Yes, but you'll need a Dockerfile with:
+
+    - Node.js runtime
+    - FFmpeg
+    - Chromium dependencies
+    - Volume mounts for `.wwebjs_auth` and models
+
+    **Example Dockerfile:**
+    ```dockerfile
+    FROM node:20-slim
+
+    # Install dependencies
+    RUN apt-get update && apt-get install -y \
+        ffmpeg \
+        chromium \
+        chromium-sandbox \
+        && rm -rf /var/lib/apt/lists/*
+
+    WORKDIR /app
+    COPY package*.json ./
+    RUN npm install
+    COPY . .
+    RUN npm run build
+
+    EXPOSE 8080
+    CMD ["npm", "start"]
+    ```
+
+    **Important:** Mount volumes for persistent auth and models.
+  </Accordion>
+
+  <Accordion title="How do I update to the latest version?">
+    **Update from Git:**
+    ```bash
+    # Pull latest changes
+    git pull origin main
+
+    # Reinstall dependencies
+    npm install
+
+    # Rebuild
+    npm run build
+
+    # Restart
+    npm start
+    ```
+
+    **Preserve your configuration:**
+    - Your `.env` file is not tracked by Git
+    - `.wwebjs_auth` session data is preserved
+    - Downloaded models are preserved
+
+    <Note>
+      Always backup your `.env` file before major updates.
+    </Note>
+  </Accordion>
+</AccordionGroup>
+
+## Need More Help?
+
+If your question isn't answered here:
+
+- Check the [Troubleshooting](/troubleshooting) guide for common issues
+- Review the [source code](https://github.com/lucaboy/whatsapp-audio-transcriber) on GitHub
+- Open an issue on the [GitHub repository](https://github.com/lucaboy/whatsapp-audio-transcriber/issues)
+- Read the documentation for [whatsapp-web.js](https://wwebjs.dev/) and [smart-whisper](https://github.com/JacobLinCool/smart-whisper)

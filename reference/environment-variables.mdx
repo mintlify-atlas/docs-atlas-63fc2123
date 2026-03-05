@@ -1,0 +1,225 @@
+---
+title: Environment Variables
+description: Complete reference for all environment variables used in WhatsApp Audio Transcriber
+icon: gear
+---
+
+This page provides a comprehensive reference for all environment variables used to configure the WhatsApp Audio Transcriber.
+
+## Configuration Overview
+
+The application uses a `.env` file in the root directory to manage configuration. Copy `.env.example` to `.env` and customize the values according to your needs.
+
+```bash
+cp .env.example .env
+```
+
+## Server Configuration
+
+<ParamField path="PORT" type="number" default="8080">
+  The port number on which the Express server will listen for incoming HTTP requests.
+  
+  The server provides a simple web interface to display the WhatsApp QR code during authentication.
+  
+  **Example:**
+  ```bash
+  PORT=3000
+  ```
+  
+  <Note>
+    Make sure the port is not already in use by another application. The QR code will be accessible at `http://localhost:{PORT}/`
+  </Note>
+</ParamField>
+
+## WhatsApp Configuration
+
+<ParamField path="TRANSCRIPTION_REACTION" type="string" default="🤖">
+  The emoji reaction used to trigger transcription of voice messages.
+  
+  When you react to a voice message with this emoji, the bot will automatically transcribe it and reply with the text.
+  
+  **Example:**
+  ```bash
+  TRANSCRIPTION_REACTION='🤖'
+  ```
+  
+  **Implementation Details:**
+  - Only reactions from yourself (`fromMe: true`) trigger transcription
+  - Reactions older than 2 minutes are ignored for performance reasons
+  - The reaction emoji is read at startup from `src/index.ts:13`
+  
+  <Warning>
+    Make sure to wrap the emoji in quotes in your `.env` file to prevent encoding issues.
+  </Warning>
+</ParamField>
+
+## Whisper Configuration
+
+<ParamField path="USE_GPU" type="boolean" default="false">
+  Enable or disable GPU acceleration for Whisper transcription.
+  
+  When set to `true`, Whisper will attempt to use GPU acceleration (CUDA) for faster transcription. This requires a compatible NVIDIA GPU and proper CUDA setup.
+  
+  **Example:**
+  ```bash
+  USE_GPU=true
+  ```
+  
+  **Implementation:**
+  ```typescript
+  const useGPU = process.env.USE_GPU === 'true';
+  const whisperOptions = {
+      gpu: useGPU
+  };
+  ```
+  
+  <Info>
+    GPU acceleration can significantly improve transcription speed, especially for longer voice messages. However, it requires additional setup and hardware.
+  </Info>
+</ParamField>
+
+<ParamField path="WHISPER_MODEL" type="string" default="medium">
+  The Whisper model size to use for transcription.
+  
+  Available models (from smallest to largest):
+  - `tiny` - Fastest, lowest accuracy (~1GB RAM)
+  - `base` - Fast, basic accuracy (~1GB RAM)
+  - `small` - Balanced speed/accuracy (~2GB RAM)
+  - `medium` - Good accuracy, slower (~5GB RAM)
+  - `large` / `large-v2` / `large-v3` - Best accuracy, slowest (~10GB RAM)
+  
+  **Example:**
+  ```bash
+  WHISPER_MODEL=medium
+  ```
+  
+  **Model Download:**
+  ```typescript
+  if (manager.check(whisperModel)) {
+      whisper = new Whisper(manager.resolve(whisperModel), whisperOptions);
+  } else {
+      manager.download(whisperModel).then(() => {
+          whisper = new Whisper(manager.resolve(whisperModel), whisperOptions);
+      });
+  }
+  ```
+  
+  <Note>
+    If the model doesn't exist locally, it will be automatically downloaded on first startup. The `medium` model provides a good balance between accuracy and speed for most use cases.
+  </Note>
+</ParamField>
+
+<ParamField path="WHISPER_LOCAL_MODEL_PATH" type="string" optional>
+  Path to a local Whisper model file in GGML format.
+  
+  Use this variable if you want to use a custom or pre-downloaded Whisper model instead of letting the application download one automatically.
+  
+  **Example:**
+  ```bash
+  WHISPER_LOCAL_MODEL_PATH=models/ggml-large-v3.bin
+  ```
+  
+  **Priority Logic:**
+  ```typescript
+  if (whisperLocalModelPath && fs.existsSync(whisperLocalModelPath)) {
+      whisper = new Whisper(whisperLocalModelPath, whisperOptions);
+  } else if (manager.check(whisperModel)) {
+      whisper = new Whisper(manager.resolve(whisperModel), whisperOptions);
+  }
+  ```
+  
+  The application checks for a local model first, then falls back to the `WHISPER_MODEL` configuration.
+  
+  <Warning>
+    Ensure the model file exists at the specified path and is in the correct GGML format compatible with `smart-whisper`.
+  </Warning>
+</ParamField>
+
+<ParamField path="TRANSCRIPTION_LANGUAGE" type="string" default="auto">
+  The language code for transcription, or `auto` for automatic detection.
+  
+  Specifying a language can improve accuracy and speed. Use ISO 639-1 language codes.
+  
+  **Common Examples:**
+  ```bash
+  TRANSCRIPTION_LANGUAGE=auto    # Automatic detection
+  TRANSCRIPTION_LANGUAGE=en      # English
+  TRANSCRIPTION_LANGUAGE=es      # Spanish
+  TRANSCRIPTION_LANGUAGE=it      # Italian
+  TRANSCRIPTION_LANGUAGE=de      # German
+  TRANSCRIPTION_LANGUAGE=fr      # French
+  ```
+  
+  **Implementation:**
+  ```typescript
+  const task = await whisper.transcribe(pcm, { 
+      language: transcriptionLanguage 
+  });
+  ```
+  
+  <Info>
+    Setting a specific language can improve transcription accuracy by 5-10% compared to auto-detection, especially for accents and technical terminology.
+  </Info>
+</ParamField>
+
+## Environment Variable Summary
+
+| Variable | Type | Required | Default | Description |
+|----------|------|----------|---------|-------------|
+| `PORT` | number | No | `8080` | Express server port |
+| `TRANSCRIPTION_REACTION` | string | No | `🤖` | Emoji to trigger transcription |
+| `USE_GPU` | boolean | No | `false` | Enable GPU acceleration |
+| `WHISPER_MODEL` | string | No | `medium` | Whisper model size |
+| `WHISPER_LOCAL_MODEL_PATH` | string | No | - | Path to local model file |
+| `TRANSCRIPTION_LANGUAGE` | string | No | `auto` | Transcription language code |
+
+## Complete Example
+
+Here's a complete `.env` file example with all variables configured:
+
+```bash title=".env"
+# Server Configuration
+PORT=8080
+
+# WhatsApp Configuration
+TRANSCRIPTION_REACTION='🤖'
+
+# Whisper Configuration
+USE_GPU=false
+WHISPER_MODEL=medium
+WHISPER_LOCAL_MODEL_PATH=models/ggml-large-v3.bin
+TRANSCRIPTION_LANGUAGE=auto
+```
+
+## Troubleshooting
+
+<Accordion title="Environment variables not being loaded">
+  **Problem:** Changes to `.env` file are not reflected in the application.
+  
+  **Solution:**
+  1. Ensure the `.env` file is in the root directory of the project
+  2. Restart the application after making changes
+  3. Check that you're not setting environment variables elsewhere that override the `.env` file
+  4. Verify the `dotenv` package is installed: `npm install dotenv`
+</Accordion>
+
+<Accordion title="Invalid emoji in TRANSCRIPTION_REACTION">
+  **Problem:** The transcription reaction isn't working or causes errors.
+  
+  **Solution:**
+  1. Ensure the emoji is wrapped in single quotes: `TRANSCRIPTION_REACTION='🤖'`
+  2. Use a single emoji character, not multiple
+  3. Avoid using combined emoji or emoji with modifiers
+  4. Test with the default `🤖` emoji first
+</Accordion>
+
+<Accordion title="GPU acceleration not working">
+  **Problem:** `USE_GPU=true` doesn't improve performance or causes errors.
+  
+  **Solution:**
+  1. Verify you have an NVIDIA GPU with CUDA support
+  2. Install CUDA toolkit and cuDNN libraries
+  3. Rebuild `smart-whisper` with GPU support
+  4. Check GPU availability with `nvidia-smi`
+  5. Fall back to `USE_GPU=false` if GPU setup is incomplete
+</Accordion>

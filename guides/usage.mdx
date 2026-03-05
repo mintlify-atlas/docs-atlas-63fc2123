@@ -1,0 +1,537 @@
+---
+title: Usage
+description: Learn how to use the WhatsApp Audio Transcriber to transcribe voice messages
+---
+
+## Starting the Bot
+
+After [installation](/guides/installation) and [configuration](/guides/configuration), you're ready to start the bot.
+
+<Steps>
+  <Step title="Start the Application">
+    Run the bot using npm:
+
+    <CodeGroup>
+    ```bash npm
+    npm start
+    ```
+
+    ```bash yarn
+    yarn start
+    ```
+
+    ```bash pnpm
+    pnpm start
+    ```
+    </CodeGroup>
+
+    You should see output similar to:
+    ```
+    Loading and initializing Whisper model...
+    WhatsApp client initializing...
+    Web server listening on port 8080
+    ```
+
+    <Tip>
+      For development with auto-reload, use `npm run dev` instead of `npm start`.
+    </Tip>
+  </Step>
+
+  <Step title="Open the Authentication Page">
+    Open your web browser and navigate to:
+
+    ```
+    http://localhost:8080
+    ```
+
+    Replace `8080` with your configured port if you changed the `PORT` setting.
+
+    <Info>
+      The page will display either a QR code (if not authenticated) or a "Connected" message (if already authenticated).
+    </Info>
+  </Step>
+
+  <Step title="Scan the QR Code">
+    1. Open WhatsApp on your phone
+    2. Tap the three dots menu (Android) or Settings (iOS)
+    3. Select "Linked Devices"
+    4. Tap "Link a Device"
+    5. Scan the QR code displayed in your browser
+
+    <Warning>
+      The QR code expires after about 60 seconds. If it expires, refresh the browser page to generate a new one.
+    </Warning>
+  </Step>
+
+  <Step title="Wait for Connection">
+    After scanning, you should see:
+    
+    ```
+    WhatsApp client ready!
+    ```
+
+    The browser page will change to: "Connected. You can close this page."
+
+    <Note>
+      Keep the terminal running. Closing it will stop the bot.
+    </Note>
+  </Step>
+</Steps>
+
+## Authentication Details
+
+### First-Time Setup
+
+When you run the bot for the first time, it will:
+
+1. Create a `.wwebjs_auth` directory to store session data
+2. Generate a QR code for authentication
+3. Wait for you to scan the QR code
+4. Save the session for future use
+
+### Subsequent Starts
+
+After the first authentication:
+
+- The bot automatically reconnects using saved session data
+- No QR code scanning is required
+- The browser page shows "Connected" immediately
+- If session expires, you'll need to scan a new QR code
+
+<Tip>
+  If you need to reset authentication, delete the `.wwebjs_auth` directory and restart the bot.
+</Tip>
+
+## Transcribing Voice Messages
+
+Once the bot is connected, you can start transcribing voice messages.
+
+### Basic Transcription Workflow
+
+<Steps>
+  <Step title="Receive or Send a Voice Message">
+    The bot can transcribe voice messages from:
+    - Individual chats
+    - Group chats
+    - Your own voice messages
+    - Voice messages from others
+
+    <Note>
+      The bot only responds to **voice messages** (PTT - Push-to-Talk), not regular audio files shared as attachments.
+    </Note>
+  </Step>
+
+  <Step title="React with the Transcription Emoji">
+    React to the voice message with your configured emoji (default: 🤖)
+
+    **Important:** 
+    - The reaction must be from YOUR WhatsApp account (the one running the bot)
+    - Reactions from other users are ignored
+    - The bot only processes reactions added within the last 2 minutes
+
+    <Info>
+      You can change the trigger emoji in your `.env` file using the `TRANSCRIPTION_REACTION` setting.
+    </Info>
+  </Step>
+
+  <Step title="Wait for Transcription">
+    The bot will:
+    
+    1. Detect your reaction
+    2. Download the voice message audio
+    3. Convert the audio to WAV format at 16kHz
+    4. Process it through Whisper AI
+    5. Reply with the transcribed text
+
+    Typical processing time:
+    - **Small model:** 10-20 seconds per minute of audio
+    - **Medium model:** 30-60 seconds per minute of audio
+    - **Large model:** 60-120 seconds per minute of audio
+    - **With GPU:** 5-10 seconds per minute of audio
+  </Step>
+
+  <Step title="Read the Transcription">
+    The bot replies to the voice message with:
+
+    ```
+    [WA-TRANSCRIBER-BOT] <transcribed text>
+    ```
+
+    <Tip>
+      The transcription appears as a reply to the original voice message, making it easy to match transcriptions with audio.
+    </Tip>
+  </Step>
+</Steps>
+
+### Example Usage Scenario
+
+<Accordion title="Visual Example">
+  1. You receive a voice message: 🎤 "Hey, can you pick up milk on your way home?"
+  2. You react with: 🤖
+  3. Bot processes (30 seconds)
+  4. Bot replies: `[WA-TRANSCRIBER-BOT] Hey, can you pick up milk on your way home?`
+</Accordion>
+
+## Understanding Bot Behavior
+
+### What the Bot Does
+
+<CardGroup cols={2}>
+  <Card title="✅ Responds To" icon="check">
+    - Voice messages (PTT format)
+    - Your own reactions only
+    - Recent reactions (< 2 minutes)
+    - Messages it can successfully download
+  </Card>
+  <Card title="❌ Ignores" icon="xmark">
+    - Regular audio file attachments
+    - Reactions from other users
+    - Old reactions (> 2 minutes)
+    - Non-voice media
+  </Card>
+</CardGroup>
+
+### Bot Response Format
+
+All transcriptions are prefixed with `[WA-TRANSCRIBER-BOT]` to distinguish them from regular messages:
+
+```
+[WA-TRANSCRIBER-BOT] This is the transcribed text from your voice message
+```
+
+### 2-Minute Time Window
+
+The bot only processes reactions added within the last 2 minutes because:
+
+- Prevents processing old messages when bot restarts
+- Improves performance by ignoring stale reactions
+- Reduces unnecessary processing
+
+From the source code (src/index.ts:78):
+```typescript
+if (moment.unix(reaction.timestamp).isBefore(moment().subtract(2, 'minutes'))) {
+    return;
+}
+```
+
+<Warning>
+  If you react to an old voice message, the bot will ignore it. React within 2 minutes for processing.
+</Warning>
+
+## Best Practices
+
+### For Optimal Accuracy
+
+<CardGroup cols={2}>
+  <Card title="Audio Quality" icon="microphone">
+    - Speak clearly and at moderate pace
+    - Minimize background noise
+    - Avoid very quiet or very loud recordings
+    - Use good quality microphone
+  </Card>
+  <Card title="Message Content" icon="comment">
+    - Avoid heavy accents if possible
+    - Speak in complete sentences
+    - Pause between different topics
+    - Specify language in config if known
+  </Card>
+  <Card title="Model Selection" icon="brain">
+    - Use `medium` for best balance
+    - Use `large` for difficult audio
+    - Use `small` for clear, simple audio
+    - Specify language for 5-15% accuracy boost
+  </Card>
+  <Card title="System Resources" icon="server">
+    - Close heavy applications during transcription
+    - Ensure adequate RAM is available
+    - Use SSD storage for faster model loading
+    - Enable GPU if available
+  </Card>
+</CardGroup>
+
+### Performance Tips
+
+<Steps>
+  <Step title="Choose the Right Model">
+    Balance speed vs accuracy based on your needs:
+
+    | Use Case | Recommended Model |
+    |----------|------------------|
+    | Quick transcriptions | `small` |
+    | General use | `medium` |
+    | Maximum accuracy | `large` |
+    | Multilingual content | `large` |
+    | Testing | `tiny` or `base` |
+  </Step>
+
+  <Step title="Optimize System Resources">
+    - Close unnecessary applications
+    - Monitor RAM usage (models need 2-4GB)
+    - Use GPU acceleration if available
+    - Consider upgrading RAM for large models
+  </Step>
+
+  <Step title="Set Language When Possible">
+    If you know the language, specify it:
+
+    ```bash .env
+    TRANSCRIPTION_LANGUAGE=en  # 5-15% faster and more accurate
+    ```
+  </Step>
+</Steps>
+
+### Managing Multiple Voice Messages
+
+You can react to multiple voice messages simultaneously:
+
+- The bot processes them in the order reactions are received
+- Each transcription is posted as a reply to its original message
+- No queue system - reactions trigger immediate processing
+- Be mindful of system resources when processing multiple long messages
+
+<Info>
+  The bot can handle multiple transcriptions, but they process sequentially. Large batches may take time.
+</Info>
+
+## Using with Multiple WhatsApp Accounts
+
+To run the bot with multiple WhatsApp accounts:
+
+1. Create separate project directories for each account
+2. Configure each with different ports:
+
+```bash Account 1 .env
+PORT=8080
+```
+
+```bash Account 2 .env
+PORT=8081
+```
+
+3. Start each bot in its own terminal:
+
+```bash
+# Terminal 1
+cd whatsapp-transcriber-account1
+npm start
+
+# Terminal 2
+cd whatsapp-transcriber-account2
+npm start
+```
+
+4. Authenticate each account separately:
+   - Account 1: http://localhost:8080
+   - Account 2: http://localhost:8081
+
+<Warning>
+  Each bot instance requires its own Whisper model in memory. Ensure you have adequate RAM (2-4GB per instance).
+</Warning>
+
+## Running in Production
+
+### Using PM2 (Process Manager)
+
+For production deployments, use PM2 to keep the bot running:
+
+<Steps>
+  <Step title="Install PM2">
+    ```bash
+    npm install -g pm2
+    ```
+  </Step>
+
+  <Step title="Start with PM2">
+    ```bash
+    pm2 start dist/index.js --name whatsapp-transcriber
+    ```
+  </Step>
+
+  <Step title="Configure Auto-restart">
+    ```bash
+    # Save PM2 configuration
+    pm2 save
+    
+    # Enable startup on system boot
+    pm2 startup
+    ```
+  </Step>
+
+  <Step title="Monitor the Bot">
+    ```bash
+    # View logs
+    pm2 logs whatsapp-transcriber
+    
+    # Check status
+    pm2 status
+    
+    # Restart
+    pm2 restart whatsapp-transcriber
+    ```
+  </Step>
+</Steps>
+
+### Using Docker (Alternative)
+
+Create a `Dockerfile`:
+
+```dockerfile Dockerfile
+FROM node:18-slim
+
+# Install FFmpeg
+RUN apt-get update && apt-get install -y ffmpeg
+
+WORKDIR /app
+
+COPY package*.json ./
+RUN npm install
+
+COPY . .
+RUN npm run build
+
+EXPOSE 8080
+
+CMD ["npm", "start"]
+```
+
+Build and run:
+
+```bash
+docker build -t whatsapp-transcriber .
+docker run -d -p 8080:8080 -v $(pwd)/models:/app/models whatsapp-transcriber
+```
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Bot doesn't respond to reactions">
+    **Checklist:**
+    
+    1. ✓ Bot is running and connected?
+    2. ✓ Reaction is from your WhatsApp account?
+    3. ✓ Reaction emoji matches `TRANSCRIPTION_REACTION`?
+    4. ✓ Voice message is PTT format (not audio file)?
+    5. ✓ Reaction added within last 2 minutes?
+    
+    **Debug:**
+    ```bash
+    # Check bot logs for errors
+    # Look for reaction detection messages
+    ```
+  </Accordion>
+
+  <Accordion title="QR code not showing">
+    **Solutions:**
+    
+    1. Check if browser can access http://localhost:PORT
+    2. Verify the PORT in .env matches the URL
+    3. Check firewall isn't blocking the port
+    4. Try refreshing the browser page
+    5. Restart the bot and try again
+    
+    If page shows "QR code not available yet":
+    - Wait 10-30 seconds for initialization
+    - Refresh the page
+    - Check terminal for error messages
+  </Accordion>
+
+  <Accordion title="Transcription is empty or wrong">
+    **Common causes:**
+    
+    1. **Audio quality too poor** - Background noise, very quiet
+    2. **Wrong language** - Try specifying language in config
+    3. **Model too small** - Use `medium` or `large`
+    4. **Corrupted audio** - Voice message didn't download properly
+    
+    **Solutions:**
+    - Use a larger model
+    - Specify language instead of `auto`
+    - Ensure good audio quality
+    - Check terminal logs for errors
+  </Accordion>
+
+  <Accordion title="Bot disconnects frequently">
+    **Possible causes:**
+    
+    1. **WhatsApp session expired** - Rescan QR code
+    2. **Internet connection unstable** - Check network
+    3. **Multiple devices linked** - WhatsApp limits linked devices
+    4. **Bot crashed** - Check logs for errors
+    
+    **Solutions:**
+    - Use PM2 for auto-restart
+    - Ensure stable internet connection
+    - Check WhatsApp app for linked devices
+    - Monitor system resources (RAM, CPU)
+  </Accordion>
+
+  <Accordion title="Slow transcription">
+    **Performance optimization:**
+    
+    1. Use smaller model (`small` or `base`)
+    2. Enable GPU acceleration if available
+    3. Specify language (5-15% faster)
+    4. Ensure adequate RAM available
+    5. Close other heavy applications
+    
+    **Expected times (1 minute audio):**
+    - tiny: 5-10s
+    - base: 10-20s
+    - small: 20-30s
+    - medium: 30-60s
+    - large: 60-120s
+    - With GPU: 5-10s (any model)
+  </Accordion>
+
+  <Accordion title="Audio file conversion errors">
+    **FFmpeg issues:**
+    
+    1. Verify FFmpeg is installed: `ffmpeg -version`
+    2. Check FFmpeg is in system PATH
+    3. Ensure voice message downloaded successfully
+    4. Check disk space in `./tmp/audio` directory
+    
+    **Solutions:**
+    - Reinstall FFmpeg
+    - Clear `./tmp/audio` directory
+    - Check file permissions
+    - Monitor disk space
+  </Accordion>
+</AccordionGroup>
+
+## Stopping the Bot
+
+To stop the bot gracefully:
+
+<CodeGroup>
+```bash Standard
+# Press Ctrl+C in the terminal
+^C
+```
+
+```bash PM2
+pm2 stop whatsapp-transcriber
+```
+
+```bash Docker
+docker stop <container-id>
+```
+</CodeGroup>
+
+<Warning>
+  Always stop the bot gracefully to ensure session data is saved properly. Avoid force-killing the process.
+</Warning>
+
+## Next Steps
+
+<CardGroup cols={3}>
+  <Card title="Configuration" icon="gear" href="/guides/configuration">
+    Fine-tune bot settings for your needs
+  </Card>
+  <Card title="Installation" icon="download" href="/guides/installation">
+    Review installation steps
+  </Card>
+  <Card title="Architecture" icon="code" href="/reference/architecture">
+    Explore the code architecture
+  </Card>
+</CardGroup>
