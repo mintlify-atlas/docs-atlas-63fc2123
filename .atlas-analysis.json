@@ -1,0 +1,57 @@
+{
+  "projectType": "general",
+  "projectName": "WhatsApp Audio Transcriber",
+  "projectDescription": "A Node.js WhatsApp bot that automatically transcribes voice messages using Whisper.cpp",
+  "theme": "palm",
+  "primaryColor": "#418f45",
+  "lightColor": "#eff8ef",
+  "darkColor": "#9ac0a4",
+  "navigation": {
+    "groups": [
+      {
+        "group": "Get Started",
+        "pages": [
+          "introduction",
+          "quickstart"
+        ]
+      },
+      {
+        "group": "Guides",
+        "pages": [
+          "guides/installation",
+          "guides/configuration",
+          "guides/usage"
+        ]
+      },
+      {
+        "group": "Reference",
+        "pages": [
+          "reference/environment-variables",
+          "reference/architecture"
+        ]
+      },
+      {
+        "group": "Help",
+        "pages": [
+          "troubleshooting",
+          "faq"
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "Automatic voice message transcription via Whisper.cpp",
+    "WhatsApp Web integration with QR code authentication",
+    "Reaction-based transcription triggering",
+    "Configurable Whisper models and GPU support",
+    "Multi-language transcription support"
+  ],
+  "publicApiSurface": [
+    "PORT - Web server port configuration",
+    "TRANSCRIPTION_REACTION - Emoji trigger for transcription",
+    "USE_GPU - Enable GPU acceleration for Whisper",
+    "WHISPER_MODEL - Whisper model selection (tiny, base, small, medium, large)",
+    "WHISPER_LOCAL_MODEL_PATH - Path to local Whisper model file",
+    "TRANSCRIPTION_LANGUAGE - Language code for transcription (auto-detect or specific)"
+  ]
+}
